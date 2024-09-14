@@ -12,4 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import sys
+import asyncio
 
+# Kind of a fix here: the eventloop is bot working as expected due to sone changes in asyncio.x.y implementation
+if sys.version_info >= (3, 8) and sys.platform.lower().startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
