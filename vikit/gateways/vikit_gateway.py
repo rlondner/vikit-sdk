@@ -606,7 +606,10 @@ class VikitGateway(MLModelsGateway):
             return await self.generate_video_DynamiCrafter_image_async(prompt)
         elif model_provider == "stabilityai_image":
             return await self.generate_video_from_image_stabilityai_async(prompt)
-
+        elif model_provider == "haiper_image_url":
+            return await self.generate_video_from_image_url_haiper_async(prompt)
+        elif model_provider == "haiper_image":
+            return await self.generate_video_from_image_haiper_async(prompt)
         else:
             raise ValueError(f"Unknown model provider: {model_provider}")
 
@@ -855,3 +858,48 @@ class VikitGateway(MLModelsGateway):
                     with open(output_vid_file_name, "wb") as video_file:
                         video_file.write(base64.b64decode(output["video"]))
                     return output_vid_file_name
+
+
+    @retry(
+            stop=stop_after_attempt(get_nb_retries_http_calls()),
+            reraise=True,
+            wait=wait_exponential(min=1, max=5),
+        )
+    async def generate_video_from_image_url_haiper_async(self, prompt: str):
+        """
+        Generate a video from the given image prompt
+
+        Args:
+            prompt: Image prompt to generate the video from an image exposed as a public URL
+
+        returns:
+                The link to the generated video
+        """
+        try:
+            logger.debug(f"Generating video from image prompt {prompt.text} and url {prompt.image_urlprompt.image_url}")
+            async with aiohttp.ClientSession(timeout=http_timeout) as session:
+                payload = {
+                    "key": self.vikit_api_key,
+                    "model": "haiper_image2video",
+                    "input": {
+                        "prompt": prompt,  # + ", 4k",
+                        "config": {
+                            "source_image": prompt.image_url
+                        }
+                    },
+                }
+                if hasattr(prompt, "negative_prompt"):
+                    payload["input"]["negative_prompt"] = prompt.negative_prompt
+
+                async with session.post(vikit_backend_url, json=payload) as response:
+                    output = await response.text()
+                    logger.debug(f"{output}")
+                    output = json.loads(output)
+                    if not output["value"]["url"].startswith("http"):
+                        raise AttributeError(
+                            "The resulting Haiper video link is not a link"
+                        )
+                    return output["value"]["url"]
+        except Exception as e:
+            logger.error(f"Error generating video with Haiper from image prompt: {e}")
+            raise

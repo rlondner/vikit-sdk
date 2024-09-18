@@ -174,3 +174,18 @@ def get_video_list_file_name(uuid = creation_uuid):
     if video_list_file_name is None:
         raise Exception("VIDEO_LIST_FILE_NAME is not set")
     return video_list_file_name
+
+
+def get_google_cloud_storage_bucket_name() -> str:
+    gcs_bucket_name = os.getenv("CLOUD_STORAGE_BUCKET_NAME_GCS", None)
+    if gcs_bucket_name is None:
+        raise Exception("CLOUD_STORAGE_BUCKET_NAME_GCS is not set")
+    return gcs_bucket_name
+
+def get_google_cloud_auth_credentials() -> str:
+    gc_auth_creds_file_path = os.getenv("CLOUD_STORAGE_AUTH_CREDENTIALS_GCS", None)
+    if gc_auth_creds_file_path is None:
+        raise Exception("CLOUD_STORAGE_AUTH_CREDENTIALS_GCS is not set")
+    if os.path.exists(gc_auth_creds_file_path) == False:
+        raise Exception("CLOUD_STORAGE_AUTH_CREDENTIALS_GCS is improperly set")
+    return gc_auth_creds_file_path
